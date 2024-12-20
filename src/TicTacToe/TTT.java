@@ -8,6 +8,16 @@
  * 3 - 5026231183 - Astrid Meilendra
  */
 
+/**
+ * ES234317-Algorithm and Data Structures
+ * Semester Ganjil, 2024/2025
+ * Group Capstone Project
+ * Group #12
+ * 1 - 5026231082 - Naufal Zaky Nugraha
+ * 2 - 5026231035 - Aldani Prasetyo
+ * 3 - 5026231183 - Astrid Meilendra
+ */
+
 package TicTacToe;
 
 import java.awt.*;
@@ -35,9 +45,40 @@ public class TTT extends JPanel {
     private JLabel statusBar;    // for displaying status message
     private AIPlayer aiPlayer;   // AI player
     private boolean againstAI;   // flag for playing against AI
+    private JFrame frame;        // store frame reference
+    private JButton switchModeButton; // button for switching modes
 
     /** Constructor to setup the UI and game components */
-    public TTT() {
+    public TTT(boolean playAgainstAI) {
+        // Set the game mode
+        this.againstAI = playAgainstAI;
+
+        // Create switch mode button
+        switchModeButton = new JButton(againstAI ? "Switch to PVP Mode" : "Switch to VS AI Mode");
+        switchModeButton.setFont(FONT_STATUS);
+        switchModeButton.addActionListener(e -> switchGameMode());
+
+        // Create status panel with both status bar and switch mode button
+        JPanel statusPanel = new JPanel(new BorderLayout());
+
+        // Setup the status bar (JLabel) to display status message
+        statusBar = new JLabel();
+        statusBar.setFont(FONT_STATUS);
+        statusBar.setBackground(COLOR_BG_STATUS);
+        statusBar.setOpaque(true);
+        statusBar.setPreferredSize(new Dimension(200, 30));
+        statusBar.setHorizontalAlignment(JLabel.LEFT);
+        statusBar.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 12));
+
+        // Add status bar and switch mode button to status panel
+        statusPanel.add(statusBar, BorderLayout.CENTER);
+        statusPanel.add(switchModeButton, BorderLayout.EAST);
+        statusPanel.setBackground(COLOR_BG_STATUS);
+
+        super.setLayout(new BorderLayout());
+        super.add(statusPanel, BorderLayout.PAGE_END);
+        super.setPreferredSize(new Dimension(Board.CANVAS_WIDTH, Board.CANVAS_HEIGHT + 30));
+        super.setBorder(BorderFactory.createLineBorder(COLOR_BG_STATUS, 2, false));
 
         // This JPanel fires MouseEvent
         super.addMouseListener(new MouseAdapter() {
@@ -76,24 +117,7 @@ public class TTT extends JPanel {
             }
         });
 
-        // Setup the status bar (JLabel) to display status message
-        statusBar = new JLabel();
-        statusBar.setFont(FONT_STATUS);
-        statusBar.setBackground(COLOR_BG_STATUS);
-        statusBar.setOpaque(true);
-        statusBar.setPreferredSize(new Dimension(300, 30));
-        statusBar.setHorizontalAlignment(JLabel.LEFT);
-        statusBar.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 12));
-
-        super.setLayout(new BorderLayout());
-        super.add(statusBar, BorderLayout.PAGE_END); // same as SOUTH
-        super.setPreferredSize(new Dimension(Board.CANVAS_WIDTH, Board.CANVAS_HEIGHT + 30));
-        // account for statusBar in height
-        super.setBorder(BorderFactory.createLineBorder(COLOR_BG_STATUS, 2, false));
-
         // Setup game objects
-        againstAI = true;  // Set to true to play against AI by default
-
         // Create a new instance of Board
         board = new Board();
 
@@ -168,6 +192,29 @@ public class TTT extends JPanel {
         }
     }
 
+    /** Switch between PVP and AI mode */
+    private void switchGameMode() {
+        againstAI = !againstAI;
+        // Update button text
+        switchModeButton.setText(againstAI ? "Switch to PVP Mode" : "Switch to VS AI Mode");
+
+        if (againstAI) {
+            aiPlayer = new AIPlayerMinimax(board);
+            aiPlayer.setSeed(Seed.NOUGHT);
+            JOptionPane.showMessageDialog(this, "Switched to Player vs AI mode");
+        } else {
+            aiPlayer = null;
+            JOptionPane.showMessageDialog(this, "Switched to Player vs Player mode");
+        }
+        // If it's AI's turn when switching to AI mode, make AI move
+        if (againstAI && currentPlayer == Seed.NOUGHT && currentState == State.PLAYING) {
+            int[] aiMove = aiPlayer.move();
+            currentState = board.stepGame(currentPlayer, aiMove[0], aiMove[1]);
+            currentPlayer = Seed.CROSS;
+            repaint();
+        }
+    }
+
     /** The entry "main" method */
     public static void main(String[] args) {
         // Run GUI construction codes in Event-Dispatching thread for thread safety
@@ -175,7 +222,7 @@ public class TTT extends JPanel {
             public void run() {
                 JFrame frame = new JFrame(TITLE);
                 // Set the content-pane of the JFrame to an instance of main JPanel
-                frame.setContentPane(new TTT());
+                frame.setContentPane(new TTT(true));
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.pack();
                 frame.setLocationRelativeTo(null); // center the application window
@@ -185,9 +232,9 @@ public class TTT extends JPanel {
     }
 
     public void play() {
-        JFrame frame = new JFrame(TITLE);
-        // Set the content-pane of the JFrame to an instance of main JPanel
-        frame.setContentPane(new TTT());
+        frame = new JFrame(TITLE);
+        // Set the content-pane of the JFrame to this instance
+        frame.setContentPane(this);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
         frame.setLocationRelativeTo(null); // center the application window
