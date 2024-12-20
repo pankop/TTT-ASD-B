@@ -10,6 +10,7 @@
 
 package TicTacToe;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import javax.sound.sampled.AudioInputStream;
@@ -17,6 +18,7 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
+
 /**
  * This enum encapsulates all the sound effects of a game, so as to separate the sound playing
  * codes from the game codes.
@@ -30,9 +32,9 @@ import javax.sound.sampled.UnsupportedAudioFileException;
  * For Eclipse, place the audio file under "src", which will be copied into "bin".
  */
 public enum SoundEffect {
-    EAT_FOOD("weapon-bolt-carrier.wav"),
-    EXPLODE("explode.wav"),
-    DIE("game_die.wav");
+    BACKGROUND("ingame.wav"),
+    AI_WIN("AiWin.wav"),
+    PLAYER_WIN("Win.wav");
 
     /** Nested enumeration for specifying volume */
     public static enum Volume {
@@ -48,18 +50,14 @@ public enum SoundEffect {
     private SoundEffect(String soundFileName) {
         try {
             // Use URL (instead of File) to read from disk and JAR.
-            URL url = this.getClass().getClassLoader().getResource(soundFileName);
+            URL url = new File("src/" + soundFileName).toURI().toURL();
             // Set up an audio input stream piped from the sound file.
             AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(url);
             // Get a clip resource.
             clip = AudioSystem.getClip();
             // Open audio clip and load samples from the audio input stream.
             clip.open(audioInputStream);
-        } catch (UnsupportedAudioFileException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (LineUnavailableException e) {
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
             e.printStackTrace();
         }
     }
@@ -67,15 +65,34 @@ public enum SoundEffect {
     /** Play or Re-play the sound effect from the beginning, by rewinding. */
     public void play() {
         if (volume != Volume.MUTE) {
-            if (clip.isRunning())
+            if (clip.isRunning()) {
                 clip.stop();   // Stop the player if it is still running
-            clip.setFramePosition(0); // rewind to the beginning
+            }
+            clip.setFramePosition(0); // Rewind to the beginning
             clip.start();     // Start playing
         }
     }
 
+    /** Play the background music in a loop */
+    public void playLoop() {
+        if (volume != Volume.MUTE) {
+            if (clip.isRunning()) {
+                clip.stop();   // Stop the player if it is still running
+            }
+            clip.setFramePosition(0); // Rewind to the beginning
+            clip.loop(Clip.LOOP_CONTINUOUSLY);     // Start playing in loop
+        }
+    }
+
+    /** Stop the sound effect */
+    public void stop() {
+        if (clip.isRunning()) {
+            clip.stop();
+        }
+    }
+
     /** Optional static method to pre-load all the sound files. */
-    static void initGame() {
-        values(); // calls the constructor for all the elements
+    public static void initGame() {
+        values(); // Calls the constructor for all the elements
     }
 }

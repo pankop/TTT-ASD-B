@@ -13,6 +13,9 @@ package TicTacToe;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import javax.sound.sampled.*;
+import java.io.File;
+
 /**
  * Tic-Tac-Toe: Two-player Graphic version with better OO design.
  * The Board and Cell classes are separated in their own classes.
@@ -49,6 +52,11 @@ public class TTT extends JPanel {
         // Set the game mode
         this.againstAI = playAgainstAI;
 
+        // Initialize sound effects
+        SoundEffect.initGame();
+        // Start background music
+        SoundEffect.BACKGROUND.playLoop();
+
         // Create dark mode toggle button
         darkModeToggle = new JToggleButton("Dark Mode");
         darkModeToggle.setFont(FONT_STATUS);
@@ -63,10 +71,6 @@ public class TTT extends JPanel {
         switchModeButton.setFont(FONT_STATUS);
         switchModeButton.addActionListener(e -> switchGameMode());
 
-        // Create status panel with status bar, switch mode button, and dark mode toggle
-        JPanel statusPanel = new JPanel(new BorderLayout());
-        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-
         // Setup the status bar (JLabel) to display status message
         statusBar = new JLabel();
         statusBar.setFont(FONT_STATUS);
@@ -76,23 +80,36 @@ public class TTT extends JPanel {
         statusBar.setHorizontalAlignment(JLabel.LEFT);
         statusBar.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 12));
 
-        // Add buttons to the buttons panel
-        buttonsPanel.add(darkModeToggle);
-        buttonsPanel.add(switchModeButton);
-        buttonsPanel.setBackground(COLOR_BG_STATUS_LIGHT);
+        // Create top panel for buttons
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        topPanel.add(darkModeToggle);
+        topPanel.add(switchModeButton);
+        topPanel.setBackground(COLOR_BG_STATUS_LIGHT);
 
-        // Add components to the status panel
-        statusPanel.add(statusBar, BorderLayout.CENTER);
-        statusPanel.add(buttonsPanel, BorderLayout.EAST);
-        statusPanel.setBackground(COLOR_BG_STATUS_LIGHT);
+        // Create bottom panel for status
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.add(statusBar, BorderLayout.CENTER);
+        bottomPanel.setBackground(COLOR_BG_STATUS_LIGHT);
+
+        // Create game board panel
+        JPanel gameBoardPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                setBackground(isDarkMode ? COLOR_BG_DARK : COLOR_BG_LIGHT);
+                board.paint(g);
+            }
+        };
+        gameBoardPanel.setPreferredSize(new Dimension(Board.CANVAS_WIDTH, Board.CANVAS_HEIGHT));
 
         super.setLayout(new BorderLayout());
-        super.add(statusPanel, BorderLayout.PAGE_END);
-        super.setPreferredSize(new Dimension(Board.CANVAS_WIDTH, Board.CANVAS_HEIGHT + 30));
-        super.setBorder(BorderFactory.createLineBorder(COLOR_BG_STATUS_LIGHT, 2, false));
+        super.add(topPanel, BorderLayout.PAGE_START);
+        super.add(gameBoardPanel, BorderLayout.CENTER);
+        super.add(bottomPanel, BorderLayout.PAGE_END);
+        super.setPreferredSize(new Dimension(Board.CANVAS_WIDTH, Board.CANVAS_HEIGHT + 80)); // Added extra height for top and bottom panels
 
         // This JPanel fires MouseEvent
-        super.addMouseListener(new MouseAdapter() {
+        gameBoardPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {  // mouse-clicked handler
                 int mouseX = e.getX();
@@ -124,7 +141,8 @@ public class TTT extends JPanel {
                     newGame();  // restart the game
                 }
                 // Refresh the drawing canvas
-                repaint();  // Callback paintComponent().
+                gameBoardPanel.repaint();  // Callback paintComponent().
+                updateStatusBar();
             }
         });
 
@@ -188,53 +206,58 @@ public class TTT extends JPanel {
         switchModeButton.setBackground(statusBgColor);
         switchModeButton.setForeground(textColor);
 
-        // Update the container of status bar and buttons
-        Container parent = (Container) statusBar.getParent();
-        if (parent != null) {
-            parent.setBackground(statusBgColor);
-            // Update the buttons panel background
-            Component[] components = parent.getComponents();
-            for (Component comp : components) {
-                if (comp instanceof JPanel) {
-                    comp.setBackground(statusBgColor);
+        // Update all panels
+        for (Component comp : getComponents()) {
+            if (comp instanceof JPanel) {
+                JPanel panel = (JPanel) comp;
+                if (panel == getComponent(1)) { // Game board panel
+                    panel.setBackground(bgColor);
+                } else {
+                    panel.setBackground(statusBgColor);
+                    // Update child components
+                    for (Component child : panel.getComponents()) {
+                        if (child instanceof JComponent) {
+                            JComponent jc = (JComponent) child;
+                            jc.setBackground(statusBgColor);
+                            jc.setForeground(textColor);
+                        }
+                    }
                 }
             }
         }
 
         // Update board dark mode state
         board.setDarkMode(isDarkMode);
+        repaint();
     }
 
     /** Custom painting codes on this JPanel */
     @Override
     public void paintComponent(Graphics g) {  // Callback via repaint()
         super.paintComponent(g);
-        setBackground(isDarkMode ? COLOR_BG_DARK : COLOR_BG_LIGHT); // set its background color
+        setBackground(isDarkMode ? COLOR_BG_DARK : COLOR_BG_LIGHT);
+    }
 
-        board.paint(g);  // ask the game board to paint itself
-
-        // Print status-bar message
+    /** Update the status bar at the bottom of the frame */
+    private void updateStatusBar() {
         if (currentState == State.PLAYING) {
             statusBar.setForeground(isDarkMode ? Color.WHITE : Color.BLACK);
             statusBar.setText((currentPlayer == Seed.CROSS) ? "X's Turn" : "O's Turn");
-            if (currentPlayer == Seed.CROSS) {
-                SoundEffect.EAT_FOOD.play();
-            }
-            if (currentPlayer == Seed.NOUGHT) {
-                SoundEffect.EAT_FOOD.play();
-            }
         } else if (currentState == State.DRAW) {
             statusBar.setForeground(Color.RED);
             statusBar.setText("It's a Draw! Click to play again.");
-            SoundEffect.DIE.play();
         } else if (currentState == State.CROSS_WON) {
             statusBar.setForeground(Color.RED);
             statusBar.setText("'X' Won! Click to play again.");
-            SoundEffect.DIE.play();
+            SoundEffect.PLAYER_WIN.play();
         } else if (currentState == State.NOUGHT_WON) {
             statusBar.setForeground(Color.RED);
             statusBar.setText("'O' Won! Click to play again.");
-            SoundEffect.DIE.play();
+            if (againstAI) {
+                SoundEffect.AI_WIN.play();
+            } else {
+                SoundEffect.PLAYER_WIN.play();
+            }
         }
     }
 
