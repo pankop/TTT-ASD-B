@@ -8,16 +8,6 @@
  * 3 - 5026231183 - Astrid Meilendra
  */
 
-/**
- * ES234317-Algorithm and Data Structures
- * Semester Ganjil, 2024/2025
- * Group Capstone Project
- * Group #12
- * 1 - 5026231082 - Naufal Zaky Nugraha
- * 2 - 5026231035 - Aldani Prasetyo
- * 3 - 5026231183 - Astrid Meilendra
- */
-
 package TicTacToe;
 
 import java.awt.*;
@@ -32,8 +22,12 @@ public class TTT extends JPanel {
 
     // Define named constants for the drawing graphics
     public static final String TITLE = "Tic Tac Toe";
-    public static final Color COLOR_BG = Color.WHITE;
-    public static final Color COLOR_BG_STATUS = new Color(216, 216, 216);
+    // Light mode colors
+    public static final Color COLOR_BG_LIGHT = Color.WHITE;
+    public static final Color COLOR_BG_STATUS_LIGHT = new Color(216, 216, 216);
+    // Dark mode colors
+    public static final Color COLOR_BG_DARK = new Color(43, 43, 43);
+    public static final Color COLOR_BG_STATUS_DARK = new Color(66, 66, 66);
     public static final Color COLOR_CROSS = new Color(239, 105, 80);  // Red #EF6950
     public static final Color COLOR_NOUGHT = new Color(64, 154, 225); // Blue #409AE1
     public static final Font FONT_STATUS = new Font("OCR A Extended", Font.PLAIN, 14);
@@ -47,38 +41,55 @@ public class TTT extends JPanel {
     private boolean againstAI;   // flag for playing against AI
     private JFrame frame;        // store frame reference
     private JButton switchModeButton; // button for switching modes
+    private boolean isDarkMode = false; // flag for dark mode
+    private JToggleButton darkModeToggle; // toggle button for dark mode
 
     /** Constructor to setup the UI and game components */
     public TTT(boolean playAgainstAI) {
         // Set the game mode
         this.againstAI = playAgainstAI;
 
+        // Create dark mode toggle button
+        darkModeToggle = new JToggleButton("Dark Mode");
+        darkModeToggle.setFont(FONT_STATUS);
+        darkModeToggle.addActionListener(e -> {
+            isDarkMode = darkModeToggle.isSelected();
+            updateTheme();
+            repaint();
+        });
+
         // Create switch mode button
         switchModeButton = new JButton(againstAI ? "Switch to PVP Mode" : "Switch to VS AI Mode");
         switchModeButton.setFont(FONT_STATUS);
         switchModeButton.addActionListener(e -> switchGameMode());
 
-        // Create status panel with both status bar and switch mode button
+        // Create status panel with status bar, switch mode button, and dark mode toggle
         JPanel statusPanel = new JPanel(new BorderLayout());
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
         // Setup the status bar (JLabel) to display status message
         statusBar = new JLabel();
         statusBar.setFont(FONT_STATUS);
-        statusBar.setBackground(COLOR_BG_STATUS);
+        statusBar.setBackground(COLOR_BG_STATUS_LIGHT);
         statusBar.setOpaque(true);
         statusBar.setPreferredSize(new Dimension(200, 30));
         statusBar.setHorizontalAlignment(JLabel.LEFT);
         statusBar.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 12));
 
-        // Add status bar and switch mode button to status panel
+        // Add buttons to the buttons panel
+        buttonsPanel.add(darkModeToggle);
+        buttonsPanel.add(switchModeButton);
+        buttonsPanel.setBackground(COLOR_BG_STATUS_LIGHT);
+
+        // Add components to the status panel
         statusPanel.add(statusBar, BorderLayout.CENTER);
-        statusPanel.add(switchModeButton, BorderLayout.EAST);
-        statusPanel.setBackground(COLOR_BG_STATUS);
+        statusPanel.add(buttonsPanel, BorderLayout.EAST);
+        statusPanel.setBackground(COLOR_BG_STATUS_LIGHT);
 
         super.setLayout(new BorderLayout());
         super.add(statusPanel, BorderLayout.PAGE_END);
         super.setPreferredSize(new Dimension(Board.CANVAS_WIDTH, Board.CANVAS_HEIGHT + 30));
-        super.setBorder(BorderFactory.createLineBorder(COLOR_BG_STATUS, 2, false));
+        super.setBorder(BorderFactory.createLineBorder(COLOR_BG_STATUS_LIGHT, 2, false));
 
         // This JPanel fires MouseEvent
         super.addMouseListener(new MouseAdapter() {
@@ -119,7 +130,7 @@ public class TTT extends JPanel {
 
         // Setup game objects
         // Create a new instance of Board
-        board = new Board();
+        board = new Board();  // Create a new instance of Board
 
         // Initialize AI player if playing against AI
         if (againstAI) {
@@ -127,8 +138,12 @@ public class TTT extends JPanel {
             aiPlayer.setSeed(Seed.NOUGHT);  // AI plays as O
         }
 
+        // Initialize the game
         initGame();
         newGame();
+
+        // Initial theme update
+        updateTheme();
     }
 
     /** Initialize the game (run once) */
@@ -159,17 +174,48 @@ public class TTT extends JPanel {
         currentPlayer = Seed.CROSS;    // cross plays first
     }
 
+    /** Update the theme based on dark mode state */
+    private void updateTheme() {
+        Color bgColor = isDarkMode ? COLOR_BG_DARK : COLOR_BG_LIGHT;
+        Color statusBgColor = isDarkMode ? COLOR_BG_STATUS_DARK : COLOR_BG_STATUS_LIGHT;
+        Color textColor = isDarkMode ? Color.WHITE : Color.BLACK;
+
+        setBackground(bgColor);
+        statusBar.setBackground(statusBgColor);
+        statusBar.setForeground(textColor);
+        darkModeToggle.setBackground(statusBgColor);
+        darkModeToggle.setForeground(textColor);
+        switchModeButton.setBackground(statusBgColor);
+        switchModeButton.setForeground(textColor);
+
+        // Update the container of status bar and buttons
+        Container parent = (Container) statusBar.getParent();
+        if (parent != null) {
+            parent.setBackground(statusBgColor);
+            // Update the buttons panel background
+            Component[] components = parent.getComponents();
+            for (Component comp : components) {
+                if (comp instanceof JPanel) {
+                    comp.setBackground(statusBgColor);
+                }
+            }
+        }
+
+        // Update board dark mode state
+        board.setDarkMode(isDarkMode);
+    }
+
     /** Custom painting codes on this JPanel */
     @Override
     public void paintComponent(Graphics g) {  // Callback via repaint()
         super.paintComponent(g);
-        setBackground(COLOR_BG); // set its background color
+        setBackground(isDarkMode ? COLOR_BG_DARK : COLOR_BG_LIGHT); // set its background color
 
         board.paint(g);  // ask the game board to paint itself
 
         // Print status-bar message
         if (currentState == State.PLAYING) {
-            statusBar.setForeground(Color.BLACK);
+            statusBar.setForeground(isDarkMode ? Color.WHITE : Color.BLACK);
             statusBar.setText((currentPlayer == Seed.CROSS) ? "X's Turn" : "O's Turn");
             if (currentPlayer == Seed.CROSS) {
                 SoundEffect.EAT_FOOD.play();

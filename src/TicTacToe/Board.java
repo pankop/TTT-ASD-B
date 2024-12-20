@@ -10,6 +10,7 @@
 
 package TicTacToe;
 import java.awt.*;
+
 /**
  * The Board class models the ROWS-by-COLS game board.
  */
@@ -22,12 +23,14 @@ public class Board {
     public static final int CANVAS_HEIGHT = Cell.SIZE * ROWS;
     public static final int GRID_WIDTH = 8;  // Grid-line's width
     public static final int GRID_WIDTH_HALF = GRID_WIDTH / 2; // Grid-line's half-width
-    public static final Color COLOR_GRID = Color.LIGHT_GRAY;  // grid lines
+    public static final Color COLOR_GRID_LIGHT = Color.LIGHT_GRAY;  // grid lines for light mode
+    public static final Color COLOR_GRID_DARK = Color.DARK_GRAY;    // grid lines for dark mode
     public static final int Y_OFFSET = 1;  // Fine tune for better display
 
     // Define properties (package-visible)
     /** Composes of 2D array of ROWS-by-COLS Cell instances */
     Cell[][] cells;
+    private boolean isDarkMode = false;
 
     /** Constructor to initialize the game board */
     public Board() {
@@ -93,10 +96,15 @@ public class Board {
         }
     }
 
+    /** Set dark mode state */
+    public void setDarkMode(boolean darkMode) {
+        this.isDarkMode = darkMode;
+    }
+
     /** Paint itself on the graphics canvas, given the Graphics context */
     public void paint(Graphics g) {
         // Draw the grid-lines
-        g.setColor(COLOR_GRID);
+        g.setColor(isDarkMode ? COLOR_GRID_DARK : COLOR_GRID_LIGHT);
         for (int row = 1; row < ROWS; ++row) {
             g.fillRoundRect(0, Cell.SIZE * row - GRID_WIDTH_HALF,
                     CANVAS_WIDTH - 1, GRID_WIDTH,
