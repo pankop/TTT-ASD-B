@@ -13,6 +13,7 @@ package TicTacToe;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import javax.sound.sampled.*;
 import java.io.File;
 
@@ -34,6 +35,7 @@ public class TTT extends JPanel {
     public static final Color COLOR_CROSS = new Color(239, 105, 80);  // Red #EF6950
     public static final Color COLOR_NOUGHT = new Color(64, 154, 225); // Blue #409AE1
     public static final Font FONT_STATUS = new Font("OCR A Extended", Font.PLAIN, 14);
+    public static final Font FONT_SCORE = new Font("OCR A Extended", Font.BOLD, 20);
 
     // Define game objects
     private Board board;         // the game board
@@ -46,6 +48,14 @@ public class TTT extends JPanel {
     private JButton switchModeButton; // button for switching modes
     private boolean isDarkMode = false; // flag for dark mode
     private JToggleButton darkModeToggle; // toggle button for dark mode
+    
+    // Score tracking
+    private int crossScore = 0;  // X player score
+    private int noughtScore = 0; // O player score
+    private JPanel scorePanel;   // Panel for score display
+    private JLabel crossScoreLabel;   // Label for X score
+    private JLabel noughtScoreLabel;  // Label for O score
+    private JButton resetScoreButton; // Button to reset scores
 
     /** Constructor to setup the UI and game components */
     public TTT(boolean playAgainstAI) {
@@ -86,6 +96,54 @@ public class TTT extends JPanel {
         topPanel.add(switchModeButton);
         topPanel.setBackground(COLOR_BG_STATUS_LIGHT);
 
+        // Create score panel
+        scorePanel = new JPanel();
+        scorePanel.setLayout(new BoxLayout(scorePanel, BoxLayout.Y_AXIS));
+        scorePanel.setBackground(COLOR_BG_STATUS_LIGHT);
+        scorePanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createEtchedBorder(),
+            "SCORE BOARD",
+            TitledBorder.CENTER,
+            TitledBorder.TOP,
+            FONT_STATUS
+        ));
+
+        // Create player score panels
+        JPanel crossPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        crossPanel.setBackground(COLOR_BG_STATUS_LIGHT);
+        JLabel crossLabel = new JLabel("Player X:");
+        crossLabel.setFont(FONT_STATUS);
+        crossLabel.setForeground(COLOR_CROSS);
+        crossScoreLabel = new JLabel("0");
+        crossScoreLabel.setFont(FONT_SCORE);
+        crossScoreLabel.setForeground(COLOR_CROSS);
+        crossPanel.add(crossLabel);
+        crossPanel.add(crossScoreLabel);
+
+        JPanel noughtPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        noughtPanel.setBackground(COLOR_BG_STATUS_LIGHT);
+        JLabel noughtLabel = new JLabel("Player O:");
+        noughtLabel.setFont(FONT_STATUS);
+        noughtLabel.setForeground(COLOR_NOUGHT);
+        noughtScoreLabel = new JLabel("0");
+        noughtScoreLabel.setFont(FONT_SCORE);
+        noughtScoreLabel.setForeground(COLOR_NOUGHT);
+        noughtPanel.add(noughtLabel);
+        noughtPanel.add(noughtScoreLabel);
+
+        // Add reset score button
+        resetScoreButton = new JButton("Reset Scores");
+        resetScoreButton.setFont(FONT_STATUS);
+        resetScoreButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        resetScoreButton.addActionListener(e -> resetScores());
+
+        // Add components to score panel
+        scorePanel.add(crossPanel);
+        scorePanel.add(Box.createVerticalStrut(5));
+        scorePanel.add(noughtPanel);
+        scorePanel.add(Box.createVerticalStrut(10));
+        scorePanel.add(resetScoreButton);
+
         // Create bottom panel for status
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.add(statusBar, BorderLayout.CENTER);
@@ -105,8 +163,9 @@ public class TTT extends JPanel {
         super.setLayout(new BorderLayout());
         super.add(topPanel, BorderLayout.PAGE_START);
         super.add(gameBoardPanel, BorderLayout.CENTER);
+        super.add(scorePanel, BorderLayout.EAST);
         super.add(bottomPanel, BorderLayout.PAGE_END);
-        super.setPreferredSize(new Dimension(Board.CANVAS_WIDTH, Board.CANVAS_HEIGHT + 80)); // Added extra height for top and bottom panels
+        super.setPreferredSize(new Dimension(Board.CANVAS_WIDTH + 150, Board.CANVAS_HEIGHT + 80)); // Added extra height for top and bottom panels
 
         // This JPanel fires MouseEvent
         gameBoardPanel.addMouseListener(new MouseAdapter() {
@@ -205,6 +264,14 @@ public class TTT extends JPanel {
         darkModeToggle.setForeground(textColor);
         switchModeButton.setBackground(statusBgColor);
         switchModeButton.setForeground(textColor);
+        
+        // Update score panel theme
+        scorePanel.setBackground(statusBgColor);
+        for (Component comp : scorePanel.getComponents()) {
+            if (comp instanceof JPanel) {
+                comp.setBackground(statusBgColor);
+            }
+        }
 
         // Update all panels
         for (Component comp : getComponents()) {
@@ -249,16 +316,34 @@ public class TTT extends JPanel {
         } else if (currentState == State.CROSS_WON) {
             statusBar.setForeground(Color.RED);
             statusBar.setText("'X' Won! Click to play again.");
+            crossScore++;
+            updateScoreLabels();
             SoundEffect.PLAYER_WIN.play();
         } else if (currentState == State.NOUGHT_WON) {
             statusBar.setForeground(Color.RED);
             statusBar.setText("'O' Won! Click to play again.");
+            noughtScore++;
+            updateScoreLabels();
             if (againstAI) {
                 SoundEffect.AI_WIN.play();
             } else {
                 SoundEffect.PLAYER_WIN.play();
             }
         }
+    }
+
+    /** Reset scores to zero */
+    private void resetScores() {
+        crossScore = 0;
+        noughtScore = 0;
+        updateScoreLabels();
+        JOptionPane.showMessageDialog(this, "Scores have been reset!");
+    }
+    
+    /** Update the score labels with current scores */
+    private void updateScoreLabels() {
+        crossScoreLabel.setText(String.valueOf(crossScore));
+        noughtScoreLabel.setText(String.valueOf(noughtScore));
     }
 
     /** Switch between PVP and AI mode */
