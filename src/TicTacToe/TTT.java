@@ -33,6 +33,8 @@ public class TTT extends JPanel {
     private State currentState;  // the current state of the game
     private Seed currentPlayer;  // the current player
     private JLabel statusBar;    // for displaying status message
+    private AIPlayer aiPlayer;   // AI player
+    private boolean againstAI;   // flag for playing against AI
 
     /** Constructor to setup the UI and game components */
     public TTT() {
@@ -52,8 +54,19 @@ public class TTT extends JPanel {
                             && board.cells[row][col].content == Seed.NO_SEED) {
                         // Update cells[][] and return the new game state after the move
                         currentState = board.stepGame(currentPlayer, row, col);
+
                         // Switch player
                         currentPlayer = (currentPlayer == Seed.CROSS) ? Seed.NOUGHT : Seed.CROSS;
+
+                        // If it's AI's turn and game is still playing
+                        if (againstAI && currentPlayer == Seed.NOUGHT && currentState == State.PLAYING) {
+                            // Get AI's move
+                            int[] aiMove = aiPlayer.move();
+                            // Make the move
+                            currentState = board.stepGame(currentPlayer, aiMove[0], aiMove[1]);
+                            // Switch back to human player
+                            currentPlayer = Seed.CROSS;
+                        }
                     }
                 } else {        // game over
                     newGame();  // restart the game
@@ -78,25 +91,48 @@ public class TTT extends JPanel {
         // account for statusBar in height
         super.setBorder(BorderFactory.createLineBorder(COLOR_BG_STATUS, 2, false));
 
-        // Set up Game
+        // Setup game objects
+        againstAI = true;  // Set to true to play against AI by default
+
+        // Create a new instance of Board
+        board = new Board();
+
+        // Initialize AI player if playing against AI
+        if (againstAI) {
+            aiPlayer = new AIPlayerMinimax(board);
+            aiPlayer.setSeed(Seed.NOUGHT);  // AI plays as O
+        }
+
         initGame();
         newGame();
     }
 
     /** Initialize the game (run once) */
     public void initGame() {
-        board = new Board();  // allocate the game-board
+        board = new Board();  // allocate array
+        // Initialize the game board
+        for (int row = 0; row < Board.ROWS; ++row) {
+            for (int col = 0; col < Board.COLS; ++col) {
+                board.cells[row][col] = new Cell(row, col);
+            }
+        }
+
+        // Initialize AI if playing against AI
+        if (againstAI) {
+            aiPlayer = new AIPlayerMinimax(board);
+            aiPlayer.setSeed(Seed.NOUGHT);  // AI plays as O
+        }
     }
 
-    /** Reset the game-board contents and the current-state, ready for new game */
+    /** Reset the game-board contents */
     public void newGame() {
         for (int row = 0; row < Board.ROWS; ++row) {
             for (int col = 0; col < Board.COLS; ++col) {
-                board.cells[row][col].content = Seed.NO_SEED; // all cells empty
+                board.cells[row][col].content = Seed.NO_SEED;  // all cells empty
             }
         }
-        currentPlayer = Seed.CROSS;    // cross plays first
         currentState = State.PLAYING;  // ready to play
+        currentPlayer = Seed.CROSS;    // cross plays first
     }
 
     /** Custom painting codes on this JPanel */
@@ -112,7 +148,7 @@ public class TTT extends JPanel {
             statusBar.setForeground(Color.BLACK);
             statusBar.setText((currentPlayer == Seed.CROSS) ? "X's Turn" : "O's Turn");
             if (currentPlayer == Seed.CROSS) {
-            SoundEffect.EAT_FOOD.play();
+                SoundEffect.EAT_FOOD.play();
             }
             if (currentPlayer == Seed.NOUGHT) {
                 SoundEffect.EAT_FOOD.play();
